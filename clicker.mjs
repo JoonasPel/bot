@@ -1,9 +1,12 @@
 import robot from "robotjs";
 import { Random, MersenneTwister19937 } from "random-js";
 
+const REACTION_TIME_MS = 200;
+const SCAN_SCREEN_MS = 50; // scan screen every x ms
+const PIXEL_CHANGE_THRESHOLD = 7;
+
 const engine = MersenneTwister19937.autoSeed();
 const random = new Random(engine);
-
 const screenSize = robot.getScreenSize();
 const screenWidth = screenSize.width;
 const screenHeight = screenSize.height;
@@ -25,7 +28,7 @@ const capture = () => {
   return img.image;
 };
 
-const calculateAvgColor = (buffer) => {
+const calcAvgColor = (buffer) => {
   let tempSum = 0;
   for (let i=0; i<buffer.length; i++) {
     tempSum += buffer[i];
@@ -33,20 +36,19 @@ const calculateAvgColor = (buffer) => {
   return tempSum / buffer.length;
 };
 
+let shootCount = 0;
 let earlierBuffer = capture();
 while (true) {
   const newBuffer = capture();
-
-  if (calculateAvgColor(newBuffer) !==
-    calculateAvgColor(earlierBuffer)) {
-      console.log("eroavaisuus");
-    }
-
+  const difference = Math.abs(calcAvgColor(newBuffer) -
+    calcAvgColor(earlierBuffer));
+  if (difference > PIXEL_CHANGE_THRESHOLD) {
+    // "reaction time" delay with randomness
+    const delay = REACTION_TIME_MS + random.integer(-20, 30);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    console.log("shoot", shootCount++);
+    await click();
+  }
   earlierBuffer = newBuffer;
-  await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise(resolve => setTimeout(resolve, SCAN_SCREEN_MS));
 }
-
-
-
-
-//await click();
